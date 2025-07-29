@@ -145,6 +145,13 @@ function wn_fs_closeFile(){
     })
 }
 
+let wn_fs_isFileExistsBuffer = 0;
+function wn_fs_isFileExists(file_Name){
+    wn_run(()=>{
+        wnApi.invoke('wn_fs_isFileExists', file_Name);
+    });
+}
+
 
 // wn core fucntions
 
