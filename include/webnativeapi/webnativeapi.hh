@@ -17,6 +17,7 @@
 #include <casci/casci.hh>
 #include <linuxtools/linuxtools.hh>
 #include <htmlui/HTMLUI.h>
+#include <libbase64/libbase64.hh>
 
 std::string wnApi_Fs_Open = "wnx0000";
 
@@ -24,7 +25,7 @@ void webnative_Api (HTMLUI& Instance, std::vector <std::string> argument_vector)
     Instance.executeJS ("wn_home_directory = `" + linuxtools::get_home_directory() + "`;");
     for (int i = 0;i < argument_vector.size();i++)
         Instance.executeJS ("wn_cli_argumentList.push(`" + CASCI(argument_vector[i]).encrypt("0") + "`);");
-    
+
 
     Instance.registerFunction("wn_fs_newFile", [](std::string file_Path){
         std::ofstream wn_fs_newFile (file_Path);
@@ -67,12 +68,40 @@ void webnative_Api (HTMLUI& Instance, std::vector <std::string> argument_vector)
                 std::string buffer , content;
                 while (std::getline (wn_fs_readFile, buffer)) content += buffer + '\n';
                 std::string buildable_content = CASCI(content).encrypt ("0");
-                Instance.executeJS ("wn_fs_readFileData = `" + buildable_content + "`;");
+                Instance.executeJS ("wn_fs_readFileBuffer = `" + buildable_content + "`;");
                 Instance.executeJS ("wn_event_signal = 0;");
             }
             else {
                 Instance.executeJS ("wn_error ('No file was open which wn_fs_readFile can use to operate.');");
             }
+        }
+    });
+
+
+    Instance.registerFunction("wn_fs_readFileBase64", [&Instance](std::string file_Data){
+        if (wnApi_Fs_Open == "wnx0000"){
+            Instance.executeJS ("wn_error ('No file was open which wn_fs_readFile can use to operate.');");
+        }
+        else {
+            std::ifstream wn_fs_readFile (wnApi_Fs_Open);
+            if (wn_fs_readFile.is_open()){
+                Instance.executeJS ("wn_fs_readFileBuffer = `" + libbase64::file_to_base64(wnApi_Fs_Open) + "`;");
+                Instance.executeJS ("wn_event_signal = 0;");
+            }
+            else {
+                Instance.executeJS ("wn_error ('No file was open which wn_fs_readFile can use to operate.');");
+            }
+        }
+    });
+
+
+    Instance.registerFunction("wn_fs_isFileExists", [&Instance](std::string file_Name){
+        std::ifstream wn_fs_isFileExists (file_Name);
+        if (wn_fs_isFileExists.is_open()){
+            Instance.executeJS ("wn_fs_isFileExistsBuffer = 1;");
+        }
+        else {
+            Instance.executeJS ("wn_fs_isFileExistsBuffer = 0;");
         }
     });
 

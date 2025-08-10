@@ -131,11 +131,18 @@ function wn_fs_writeFile(file_Data){
     })
 }
 
-let wn_fs_readFileData = "";
+let wn_fs_readFileBuffer = "";
 function wn_fs_readFile(){
     wn_run(()=>{
         wn_event_signal = 1;
         wnApi.invoke ('wn_fs_readFile');
+    });
+}
+
+function wn_fs_readFileBase64(){
+    wn_run(()=>{
+        wn_event_signal = 1;
+        wnApi.invoke ('wn_fs_readFileBase64');
     });
 }
 
