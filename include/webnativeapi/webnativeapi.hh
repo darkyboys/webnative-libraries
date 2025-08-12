@@ -7,11 +7,12 @@
 
 // Header
 // STL
-#include <iostream>
-#include  <fstream>
-#include   <string>
-#include   <thread>
-#include   <vector>
+#include <filesystem>
+#include   <iostream>
+#include    <fstream>
+#include     <string>
+#include     <thread>
+#include     <vector>
 
 // Local Headers
 #include <casci/casci.hh>
@@ -20,6 +21,7 @@
 #include <libbase64/libbase64.hh>
 
 std::string wnApi_Fs_Open = "wnx0000";
+std::string wnApi_DataDir = "com.global.wn";
 
 void webnative_Api (HTMLUI& Instance, std::vector <std::string> argument_vector){
     Instance.executeJS ("wn_home_directory = `" + linuxtools::get_home_directory() + "`;");
@@ -27,8 +29,19 @@ void webnative_Api (HTMLUI& Instance, std::vector <std::string> argument_vector)
         Instance.executeJS ("wn_cli_argumentList.push(`" + CASCI(argument_vector[i]).encrypt("0") + "`);");
 
 
-    Instance.registerFunction("wn_fs_newFile", [](std::string file_Path){
+    Instance.registerFunction("wn_fs_newFile", [&Instance](std::string file_Path){
         std::ofstream wn_fs_newFile (file_Path);
+        Instance.executeJS ("wn_event_signal = 0;");
+    });
+
+    Instance.registerFunction("wn_fs_newDir", [&Instance](std::string file_Path){
+        std::filesystem::create_directories (file_Path);
+        Instance.executeJS ("wn_event_signal = 0;");
+    });
+
+    Instance.registerFunction("wn_fs_remove", [&Instance](std::string file_Path){
+        std::filesystem::remove_all (file_Path);
+        Instance.executeJS ("wn_event_signal = 0;");
     });
 
     Instance.registerFunction("wn_fs_openFile", [&Instance](std::string file_Path){
@@ -103,8 +116,19 @@ void webnative_Api (HTMLUI& Instance, std::vector <std::string> argument_vector)
         else {
             Instance.executeJS ("wn_fs_isFileExistsBuffer = 0;");
         }
+        Instance.executeJS ("wn_event_signal = 0;");
     });
 
+
+    Instance.registerFunction("wn_fs_isDirExists", [&Instance](std::string dir_Name){
+        if (std::filesystem::is_directory(dir_Name)){
+            Instance.executeJS ("wn_fs_isDirExistsBuffer = 1;");
+        }
+        else {
+            Instance.executeJS ("wn_fs_isDirExistsBuffer = 0;");
+        }
+        Instance.executeJS ("wn_event_signal = 0;");
+    });
 
     // add the system calls
     Instance.registerFunction("wn_exit", [](std::string code){
@@ -121,6 +145,50 @@ void webnative_Api (HTMLUI& Instance, std::vector <std::string> argument_vector)
         std::thread ([&command](){
             std::system (command.c_str());
         }).detach();
+    });
+
+
+    Instance.registerFunction("wn_system_piped", [&Instance](std::string command){
+        std::string path = linuxtools::get_home_directory() + "/.config/" + wnApi_DataDir;
+        if (std::filesystem::is_directory(path)){
+            command += " >" + path + "/wn_system_piped.txt";
+            // std::cout << command << "\n";
+            bool finished = false;
+            std::thread ([command, &finished](){
+                std::cout << command.c_str() << "\n";
+                std::system (command.c_str());
+                finished = true;
+            }).detach();
+            while (not finished){
+                std::ifstream ifile (path + "/wn_system_piped.txt");
+                std::string buffer, content;
+                while (std::getline (ifile, buffer)) content += buffer + "\n";
+                content = CASCI (content).encrypt("0");
+                Instance.executeJS ("wn_system_pipedBuffer = `" + content + "`;");
+            }
+        }
+        else {
+            std::filesystem::create_directories (path);
+            command += " >" + path + "/wn_system_piped.txt";
+            bool finished = false;
+            std::thread ([command, &finished](){
+                std::cout << command.c_str() << "\n";
+                std::system (command.c_str());
+                finished = true;
+            }).detach();
+            while (not finished){
+                std::ifstream ifile (path + "/wn_system_piped.txt");
+                std::string buffer, content;
+                while (std::getline (ifile, buffer)) content += buffer + "\n";
+                content = CASCI (content).encrypt("0");
+                Instance.executeJS ("wn_system_pipedBuffer = `" + content + "`;");
+            }
+        }
+        Instance.executeJS ("wn_event_signal = 0;");
+    });
+
+    Instance.registerFunction("wn_set_dataDir", [](std::string file_Path){
+        wnApi_DataDir = file_Path;
     });
 
 

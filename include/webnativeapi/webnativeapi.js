@@ -100,18 +100,19 @@ function wn_run (func){
 
 function wn_fs_newFile (file_Path){
     wn_run(()=>{
+        wn_event_signal = 1;
         wnApi.invoke ('wn_fs_newFile', file_Path);
     })
 }
 
-
+let wn_continue_globalChecks = 0;
 function wn_continue (func, checks = 100){
     let interval = setInterval (()=>{
         if (!wn_event_signal){
             func();
             clearInterval(interval);
         }
-    }, checks);
+    }, (wn_continue_globalChecks == 0)? checks : wn_continue_globalChecks);
 }
 
 
@@ -155,10 +156,32 @@ function wn_fs_closeFile(){
 let wn_fs_isFileExistsBuffer = 0;
 function wn_fs_isFileExists(file_Name){
     wn_run(()=>{
+        wn_event_signal = 1;
         wnApi.invoke('wn_fs_isFileExists', file_Name);
     });
 }
 
+let wn_fs_isDirExistsBuffer = 0;
+function wn_fs_isDirExists(dir_Name){
+    wn_run(()=>{
+        wn_event_signal = 1;
+        wnApi.invoke('wn_fs_isDirExists', dir_Name);
+    });
+}
+
+function wn_fs_newDir(dir_Name){
+    wn_run(()=>{
+        wn_event_signal = 1;
+        wnApi.invoke('wn_fs_newDir', dir_Name);
+    });
+}
+
+function wn_fs_remove(dir_Name){
+    wn_run(()=>{
+        wn_event_signal = 1;
+        wnApi.invoke('wn_fs_remove', dir_Name);
+    });
+}
 
 // wn core fucntions
 
@@ -183,6 +206,20 @@ function wn_exit (code = 3){
 function wn_system (command){
     wn_run (()=>{
         wnApi.invoke ("wn_system", command);
+    });
+}
+
+let wn_system_pipedBuffer = ``;
+function wn_system_piped (command){
+    wn_run (()=>{
+        wn_event_signal = 0;
+        wnApi.invoke ("wn_system_piped", command);
+    });
+}
+
+function wn_set_dataDir (dir){
+    wn_run (()=>{
+        wnApi.invoke ("wn_set_dataDir", dir);
     });
 }
 
